@@ -2,9 +2,9 @@
 #  BUILD  #
 #########################################################
 # Base image
-BASE_IMAGE_NAME = centerpoint_base
+BASE_IMAGE_NAME = centerpointmvp_base
 # Main image
-IMAGE_NAME = centerpoint_ros
+IMAGE_NAME = centerpointmvp_ros
 
 
 # Build only the base image - centerpoint_base

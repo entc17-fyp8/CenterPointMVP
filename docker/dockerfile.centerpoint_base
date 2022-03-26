@@ -46,10 +46,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /workspace
 
-
-#
 # add the ROS deb repo to the apt sources list
-#
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
           git \
@@ -66,9 +63,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
 RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
 
 
-#
 # install bootstrap dependencies
-#
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
           libpython3-dev \
@@ -81,25 +76,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 
-#
 # download/build the ROS source
-#
-
 WORKDIR /workspace
 # temporary workspace for building ros packages
 RUN mkdir ros_catkin_ws
 WORKDIR /workspace/ros_catkin_ws/
 RUN mkdir ./src
-
-# Clone ros packages using rosinstall_generator & vcs into ./src
-# RUN rosinstall_generator \
-#         rospy \
-#         sensor_msgs \
-#         nav_msgs \
-#         ros_numpy \
-#         jsk_recognition_msgs \
-#     --rosdistro ${ROS_DISTRO} --deps --tar > ${ROS_DISTRO}-${ROS_PKG}.rosinstall 
-# RUN vcs import --input ${ROS_DISTRO}-${ROS_PKG}.rosinstall ./src 
 
 RUN rosinstall_generator \
         rospy \
@@ -109,13 +91,13 @@ RUN rosinstall_generator \
     --rosdistro ${ROS_DISTRO} --deps --tar > ${ROS_DISTRO}-${ROS_PKG}.rosinstall 
 RUN vcs import --input ${ROS_DISTRO}-${ROS_PKG}.rosinstall ./src 
 
-# git clone custom ros pacages into ./src
+# git clone custom ros packages into ./src
 RUN rosinstall_generator \
         jsk_footstep_msgs \
         pcl_msgs\
     --rosdistro ${ROS_DISTRO} --deps --tar > dependencies-for-jsk.rosinstall 
 RUN vcs import --input dependencies-for-jsk.rosinstall ./src 
-# RUN cd src && git clone  -b jsk-recognition-msgs https://github.com/entc17-fyp8/jsk_recognition.git
+# Add jsk-recognition-msgs
 RUN cd src && git clone  -b jsk-recognition-msgs https://github.com/entc17-fyp8/jsk_recognition.git && cd jsk_recognition && git checkout 0025990ce4a0f0340b974020e33108381fb969f9
 
 # Install system dependencies for above packages
@@ -196,26 +178,14 @@ RUN python setup.py bdist_wheel
 WORKDIR /workspace/spconv/dist
 RUN pip install *
 
-# CenterPoint (original repo) - copy files
-# WORKDIR /workspace
-# COPY CenterPoint ./CenterPoint
-# WORKDIR /workspace/CenterPoint
-# RUN pip install --no-cache-dir -r requirements.txt
-# ENV PYTHONPATH "${PYTHONPATH}:/workspace/CenterPoint"
-# Setup det3d, iou3d_nms
-# WORKDIR /workspace/CenterPoint/det3d/ops/dcn 
-# RUN python setup.py build_ext --inplace
-# WORKDIR /workspace/CenterPoint/det3d/ops/iou3d_nms
-# RUN python setup.py build_ext --inplace
-
-# CenterPoint - mount as volume
+# CenterPoint - mount as volume and add to PythonPath
 VOLUME /CenterPoint
 ENV PYTHONPATH "${PYTHONPATH}:/workspace/CenterPoint"
 
 # Install requirements.txt for CenterPoint
-COPY docker/requirements.txt /opt/app/requirements.txt
+COPY docker/requirements_centerpoint.txt /opt/app/requirements_centerpoint.txt
 WORKDIR /opt/app
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_centerpoint.txt
 
 #########################################################
 # Other
