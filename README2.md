@@ -1,5 +1,12 @@
 # CenterPoint - Center-based 3D Object Detection and Tracking
 
+## Clone Repo
+
+    git clone <URL>
+    git submodule update --init --recursive
+
+
+
 ## Data Preparation
 
     # Train set
@@ -8,6 +15,11 @@
 
     # Test set
     python tools/create_data.py nuscenes_data_prep --root_path="/workspace/CenterPoint/data/nuScenes/v1.0-test" --version="v1.0-test" --nsweeps=10
+
+
+## ROS
+
+    python tools/ros_inference_single_sweep.py 
 
 ### Testing - with Optimal Config file
 
