@@ -1,0 +1,9 @@
+[submodule "apex"]
+	path = apex
+	url = https://github.com/NVIDIA/apex
+[submodule "spconv"]
+	path = spconv
+	url = https://github.com/traveller59/spconv.git
+[submodule "nuscenes-devkit"]
+	path = nuscenes-devkit
+	url = https://github.com/tianweiy/nuscenes-devkit
