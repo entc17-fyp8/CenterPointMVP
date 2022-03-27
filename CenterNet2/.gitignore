@@ -47,11 +47,11 @@ _darcs
 
 # project dirs
 /detectron2/model_zoo/configs
-# /datasets/*
-# !/datasets/*.*
-# !/datasets/lvis/
-# /datasets/lvis/*
-# !/datasets/lvis/lvis_v1_train_cat_info.json
-# /projects/*/datasets
-# /models
-# /snippet
+/datasets/*
+!/datasets/*.*
+!/datasets/lvis/
+/datasets/lvis/*
+!/datasets/lvis/lvis_v1_train_cat_info.json
+/projects/*/datasets
+/models
+/snippet
