@@ -51,7 +51,7 @@ model = dict(
         code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 1.0, 1.0],
         common_heads={'reg': (2, 2), 'height': (1, 2), 'dim':(3, 2), 'rot':(2, 2), 'vel': (2, 2)},
         share_conv_channel=64,
-        dcn_head=True
+        dcn_head=False
     ),
 )
 
@@ -87,7 +87,7 @@ test_cfg = dict(
 # dataset settings
 dataset_type = "NuScenesDataset"
 nsweeps = 10
-data_root = "data/nuScenes/v1.0-test"
+data_root = "data/nuScenes"
 
 db_sampler = dict(
     type="GT-AUG",
@@ -128,8 +128,9 @@ db_sampler = dict(
 train_preprocessor = dict(
     mode="train",
     shuffle_points=True,
-    global_rot_noise=[-0.3925, 0.3925],
-    global_scale_noise=[0.95, 1.05],
+    global_rot_noise=[-0.78539816, 0.78539816],
+    global_scale_noise=[0.9, 1.1],
+    global_translate_std=0.5,
     db_sampler=db_sampler,
     class_names=class_names,
 )
@@ -168,11 +169,11 @@ test_pipeline = [
 
 train_anno = "data/nuScenes/infos_train_10sweeps_withvelo_filter_True.pkl"
 val_anno = "data/nuScenes/infos_val_10sweeps_withvelo_filter_True.pkl"
-test_anno = "data/nuScenes/v1.0-test/infos_test_10sweeps_withvelo.pkl"
+test_anno = "data/nuScenes/infos_test_10sweeps_withvelo_filter_True.pkl"
 
 data = dict(
     samples_per_gpu=4,
-    workers_per_gpu=8,
+    workers_per_gpu=6,
     train=dict(
         type=dataset_type,
         root_path=data_root,
