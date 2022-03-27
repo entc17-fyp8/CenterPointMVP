@@ -1,26 +1,16 @@
 #########################################################
 #  BUILD  #
 #########################################################
-# Base image
-BASE_IMAGE_NAME = centerpointmvp_base
-# Main image
+
+# Main image name
 IMAGE_NAME = centerpointmvp_ros
 
-
-# Build only the base image - centerpoint_base
-.PHONY: build-base
-build-base: 
-	docker build -f ./docker/dockerfile.centerpoint_base -t ${BASE_IMAGE_NAME} .
 
 # Build only the main image - centerpoint_ros
 .PHONY: build
 build: 
-	docker build -f ./docker/dockerfile.centerpoint_ros -t ${IMAGE_NAME} . 
+	docker build -f ./docker/dockerfile.centerpoint_mvp -t ${IMAGE_NAME} . 
 
-# Build both base and main images
-.PHONY: build-all
-build-all: build-base
-	docker build -f ./docker/dockerfile.centerpoint_ros -t ${IMAGE_NAME} . 
 
 
 
