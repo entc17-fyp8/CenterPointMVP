@@ -132,7 +132,8 @@ train_preprocessor = dict(
     global_rot_noise=[-0.78539816, 0.78539816],
     global_scale_noise=[0.9, 1.1],
     global_translate_std=0.5,
-    db_sampler=db_sampler,
+    # db_sampler=db_sampler,
+    db_sampler=None,
     class_names=class_names,
 )
 

@@ -6,6 +6,7 @@ import numpy as np
 import torch 
 import cv2 
 import os 
+
 H=900
 W=1600
 
@@ -265,8 +266,17 @@ def main(args):
         if len(data) == 0:
             continue 
         info = data[0]
-        tokens = info['lidar_path'].split('/')
-        output_path = os.path.join(*tokens[:-2], tokens[-2]+"_VIRTUAL", tokens[-1]+'.pkl.npy')
+        print("info['lidar_path']:", info['lidar_path'])
+        # /workspace/CenterPoint/data/nuScenes/samples/LIDAR_TOP/n015-2018-07-18-11-07-57+0800__LIDAR_TOP__1531883530449377.pcd.bin
+        out_fpath12, out_fpath3 = os.path.split(info['lidar_path'])
+        # out_fpath1 = '' # /workspace/CenterPoint/data/nuScenes/samples/
+        # out_fpath2 = '' # LIDAR_TOP_VIRTUAL
+        # out_fpath3 = '' # n015-2018-07-18-11-07-57+0800__LIDAR_TOP__1531883530449377.pcd.bin
+        
+        # tokens = info['lidar_path'].split('/')
+        # output_path = os.path.join(*tokens[:-2], tokens[-2]+"_VIRTUAL", tokens[-1]+'.pkl.npy')
+        
+        output_path = os.path.join(out_fpath12+"_VIRTUAL", out_fpath3+'.pkl.npy')
         
         res = process_one_frame(info, predictor, data)
 
@@ -302,10 +312,10 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    if not os.path.isdir('data/nuScenes/samples/LIDAR_TOP_VIRTUAL'):
-        os.mkdir('data/nuScenes/samples/LIDAR_TOP_VIRTUAL')
+    # if not os.path.isdir('data/nuScenes/samples/LIDAR_TOP_VIRTUAL'):
+    #     os.mkdir('data/nuScenes/samples/LIDAR_TOP_VIRTUAL')
 
-    if not os.path.isdir('data/nuScenes/sweeps/LIDAR_TOP_VIRTUAL'):
-        os.mkdir('data/nuScenes/sweeps/LIDAR_TOP_VIRTUAL')
+    # if not os.path.isdir('data/nuScenes/sweeps/LIDAR_TOP_VIRTUAL'):
+    #     os.mkdir('data/nuScenes/sweeps/LIDAR_TOP_VIRTUAL')
 
     main(args)

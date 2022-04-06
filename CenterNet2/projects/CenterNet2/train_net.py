@@ -35,8 +35,8 @@ from detectron2.modeling.test_time_augmentation import GeneralizedRCNNWithTTA
 from detectron2.data.dataset_mapper import DatasetMapper
 from detectron2.data.build import build_detection_train_loader
 
-from centernet.config import add_centernet_config
-from centernet.data.custom_build_augmentation import build_custom_augmentation
+from CenterNet2.centernet.config import add_centernet_config
+from CenterNet2.centernet.data.custom_build_augmentation import build_custom_augmentation
 
 logger = logging.getLogger("detectron2")
 
