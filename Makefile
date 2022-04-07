@@ -21,6 +21,8 @@ DOCKER_VOLUMES = \
 	--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 	--volume="/mnt/sda2/Batch17/Datasets/nuscenes_extracted/trainval_test:/workspace/CenterPoint/data/nuScenes":rw \
 	--volume="${PWD}/CenterPoint":"/workspace/CenterPoint":rw \
+	--volume="${PWD}/CenterNet2":"/workspace/CenterNet2":rw \
+	--volume="${PWD}/MVP":"/workspace/MVP":rw \
 	--volume="${PWD}/Checkpoints":"/workspace/Checkpoints":rw 
 DOCKER_ENV_VARS = \
 	--env="NVIDIA_DRIVER_CAPABILITIES=all" \

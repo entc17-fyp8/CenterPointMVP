@@ -2,7 +2,6 @@ import itertools
 import logging
 
 from det3d.utils.config_tool import get_downsample_factor
-DOUBLE_FLIP = True 
 
 tasks = [
     dict(num_class=1, class_names=["car"]),
@@ -25,12 +24,13 @@ model = dict(
     type="VoxelNet",
     pretrained=None,
     reader=dict(
-        type="VoxelFeatureExtractorV3",
-        # type='SimpleVoxel',
-        num_input_features=5,
+        type="DynamicVoxelEncoder",
+        pc_range=[-54, -54, -5.0, 54, 54, 3.0],
+        voxel_size=[0.075, 0.075, 0.2],
+        virtual=True
     ),
     backbone=dict(
-        type="SpMiddleResNetFHD", num_input_features=5, ds_factor=8
+        type="SpMiddleResNetFHD", num_input_features=21, ds_factor=8
     ),
     neck=dict(
         type="RPN",
@@ -51,7 +51,7 @@ model = dict(
         code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 1.0, 1.0],
         common_heads={'reg': (2, 2), 'height': (1, 2), 'dim':(3, 2), 'rot':(2, 2), 'vel': (2, 2)},
         share_conv_channel=64,
-        dcn_head=True
+        dcn_head=False
     ),
 )
 
@@ -62,6 +62,8 @@ assigner = dict(
     gaussian_overlap=0.1,
     max_objs=500,
     min_radius=2,
+    pc_range=[-54, -54, -5.0, 54, 54, 3.0],
+    voxel_size=[0.075, 0.075, 0.2]
 )
 
 
@@ -80,19 +82,18 @@ test_cfg = dict(
     score_threshold=0.1,
     pc_range=[-54, -54],
     out_size_factor=get_downsample_factor(model),
-    voxel_size=[0.075, 0.075],
-    double_flip=DOUBLE_FLIP
+    voxel_size=[0.075, 0.075]
 )
 
 # dataset settings
 dataset_type = "NuScenesDataset"
 nsweeps = 10
-data_root = "data/nuScenes/v1.0-test"
+data_root = "data/nuScenes"
 
 db_sampler = dict(
     type="GT-AUG",
     enable=False,
-    db_info_path="data/nuScenes/dbinfos_train_10sweeps_withvelo.pkl",
+    db_info_path="data/nuScenes/dbinfos_train_10sweeps_withvelo_virtual.pkl",
     sample_groups=[
         dict(car=2),
         dict(truck=3),
@@ -128,8 +129,9 @@ db_sampler = dict(
 train_preprocessor = dict(
     mode="train",
     shuffle_points=True,
-    global_rot_noise=[-0.3925, 0.3925],
-    global_scale_noise=[0.95, 1.05],
+    global_rot_noise=[-0.78539816, 0.78539816],
+    global_scale_noise=[0.9, 1.1],
+    global_translate_std=0.5,
     db_sampler=db_sampler,
     class_names=class_names,
 )
@@ -139,19 +141,10 @@ val_preprocessor = dict(
     shuffle_points=False,
 )
 
-voxel_generator = dict(
-    range=[-54, -54, -5.0, 54, 54, 3.0],
-    voxel_size=[0.075, 0.075, 0.2],
-    max_points_in_voxel=10,
-    max_voxel_num=[120000, 160000],
-    double_flip=DOUBLE_FLIP
-)
-
 train_pipeline = [
     dict(type="LoadPointCloudFromFile", dataset=dataset_type),
     dict(type="LoadPointCloudAnnotations", with_bbox=True),
     dict(type="Preprocess", cfg=train_preprocessor),
-    dict(type="Voxelization", cfg=voxel_generator),
     dict(type="AssignLabel", cfg=train_cfg["assigner"]),
     dict(type="Reformat"),
     # dict(type='PointCloudCollect', keys=['points', 'voxels', 'annotations', 'calib']),
@@ -160,25 +153,25 @@ test_pipeline = [
     dict(type="LoadPointCloudFromFile", dataset=dataset_type),
     dict(type="LoadPointCloudAnnotations", with_bbox=True),
     dict(type="Preprocess", cfg=val_preprocessor),
-    dict(type="DoubleFlip") if DOUBLE_FLIP else dict(type="Empty"), 
-    dict(type="Voxelization", cfg=voxel_generator),
     dict(type="AssignLabel", cfg=train_cfg["assigner"]),
-    dict(type="Reformat", double_flip=DOUBLE_FLIP),
+    dict(type="Reformat"),
 ]
 
 train_anno = "data/nuScenes/infos_train_10sweeps_withvelo_filter_True.pkl"
 val_anno = "data/nuScenes/infos_val_10sweeps_withvelo_filter_True.pkl"
-test_anno = "data/nuScenes/v1.0-test/infos_test_10sweeps_withvelo.pkl"
+test_anno = None
 
 data = dict(
     samples_per_gpu=4,
-    workers_per_gpu=8,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         root_path=data_root,
         info_path=train_anno,
         ann_file=train_anno,
         nsweeps=nsweeps,
+        virtual=True,
+        load_interval=1,
         class_names=class_names,
         pipeline=train_pipeline,
     ),
@@ -187,6 +180,7 @@ data = dict(
         root_path=data_root,
         info_path=val_anno,
         test_mode=True,
+        virtual=True,
         ann_file=val_anno,
         nsweeps=nsweeps,
         class_names=class_names,
@@ -196,12 +190,11 @@ data = dict(
         type=dataset_type,
         root_path=data_root,
         info_path=test_anno,
-        test_mode=True,
+        virtual=True,
         ann_file=test_anno,
         nsweeps=nsweeps,
         class_names=class_names,
         pipeline=test_pipeline,
-        version='v1.0-test'
     ),
 )
 

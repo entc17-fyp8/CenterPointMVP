@@ -190,7 +190,10 @@ COPY docker/requirements_centerpoint.txt /opt/app/requirements_centerpoint.txt
 WORKDIR /opt/app
 RUN pip install --no-cache-dir -r requirements_centerpoint.txt
 
-
+# CenterNet2 - mount as volume and add to PythonPath
+VOLUME /CenterNet2
+ENV PYTHONPATH "${PYTHONPATH}:/workspace/CenterNet2/projects"
+ENV PYTHONPATH "${PYTHONPATH}:/workspace/CenterNet2"
 
 ##################################################################################################################
 # Other
