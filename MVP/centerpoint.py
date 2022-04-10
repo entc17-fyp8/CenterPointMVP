@@ -153,16 +153,21 @@ class CenterPointForwardModel:
         return scores, boxes_lidar, types
 
     def run_with_virtual_points(self, point_features):
-        tt_1 = time.time()
-        # point_features # (_, 15)  [x,y,z, time? , one_hot_labels_for_10_classes_or_all_1s, type_encoding]
-        print(f"input points shape: {point_features.shape}")
-        # num_features = 5
-        # num_point_features = 16 #TODO : num_point_feature =16 if virtual ??        
-        # self.points = point_features
-        # self.points = point_features.reshape(-1, num_point_features)
-        # self.points[:, 4] = 0 # timestamp value 
+        '''
+        Run CenterPoint with Virtual Points
 
-        # TODO: Check the following 
+        Args:
+            point_features # (_, 15)  [x,y,z, time? , one_hot_labels_for_10_classes_or_all_1s, type_encoding]
+
+        Returns:
+            return scores
+            boxes_lidar
+            types
+        '''
+        # point_features has shape: # (_, 15)  [x,y,z, time? , one_hot_labels_for_10_classes_or_all_1s, type_encoding]
+        
+        # self.points should be (_,16)
+        # Add a column of 0s to the end
         self.points = np.concatenate([  
                 point_features[:, [0, 1, 2, ]],                
                 point_features[:,[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]],
@@ -171,16 +176,13 @@ class CenterPointForwardModel:
             axis=1
         )
         
-        # self.points should be (_,16)
-        
-        
         tt_1_b = time.time()
         # Generate voxels from points (Using GPU with numba)
         voxels, coords, num_points = self.voxel_generator.generate(self.points)
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
         grid_size = self.voxel_generator.grid_size
         coords = np.pad(coords, ((0, 0), (1, 0)), mode='constant', constant_values = 0)
-        print("  voxelization time cost:", time.time() - tt_1_b)
+        print("\tTime Cost: Voxelization \t \t:\t", time.time() - tt_1_b)
         
         # Move tensors to GPU
         voxels = torch.tensor(voxels, dtype=torch.float32, device=self.device)
@@ -206,7 +208,7 @@ class CenterPointForwardModel:
     
         
         torch.cuda.synchronize()
-        print("  network predict time cost:", time.time() - tt_2)
+        print("\tTime Cost: CenterPoint Forward Pass \t:\t", time.time() - tt_2)
 
         outputs = remove_low_score_nu(outputs, 0.45)
 
@@ -217,8 +219,6 @@ class CenterPointForwardModel:
         types = outputs["label_preds"].detach().cpu().numpy()
 
         boxes_lidar[:, -1] = -boxes_lidar[:, -1] - np.pi / 2
-
-        print(f"  total cost time: {time.time() - tt_1}")
 
         return scores, boxes_lidar, types
 
