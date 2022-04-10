@@ -57,8 +57,11 @@ def read_file(path, num_point_feature=4):
 
 @torch.no_grad()
 def projectionV2(points, all_cams_from_lidar, all_cams_intrinsic, H=900, W=1600, device='cuda:0'):
-    # projected_points
-    # camera_x, camera_y, depth in camera coordinate, camera_id 
+    '''
+    project 3D points into 2D
+    '''
+    # 
+    # camera_x, camera_y, depth in camera coordinate, valid_indicator 
     num_lidar_point = points.shape[0]
     num_camera = len(all_cams_from_lidar)
 
@@ -89,4 +92,4 @@ def projectionV2(points, all_cams_from_lidar, all_cams_intrinsic, H=900, W=1600,
 
     projected_points[valid_mask] = valid_projected_points 
 
-    return projected_points
+    return projected_points  # (6,N,4)  - [[camera_x, camera_y, depth in camera coordinate, valid_indicator ]]
