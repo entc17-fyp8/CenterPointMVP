@@ -1,4 +1,5 @@
 import imp
+from unittest.mock import DEFAULT
 from tqdm import tqdm 
 import argparse 
 import numpy as np 
@@ -22,69 +23,106 @@ import time
 from centerpoint import CenterPointForwardModel, yaw2quaternion
 from mvp_model import MVP
 
-CAM_CHANS = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_FRONT_LEFT']
+DEFAULT_CONFIG_FILE_PATHS = {
+    'CenterPoint':
+        {
+            'LIDAR':
+                {
+                    'PP':'/workspace/CenterPoint/configs/nusc/pp/nusc_centerpoint_pp_02voxel_two_pfn_10sweep.py',
+                    'VN':'/workspace/CenterPoint/configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py'
+                },
+            'MVP':
+                {
+                    'PP':'/workspace/CenterPoint/configs/mvp/nusc_centerpoint_pp_fix_bn_z_scale_virtual.py'
+                }
+        },
+    'CenterNet2':'c2_config/nuImages_CenterNet2_DLA_640_8x.yaml'
+}
 
-
+DEFAULT_WEIGHT_FILE_PATHS = {
+    'CenterPoint':
+        {
+            'LIDAR':
+                {
+                    'PP':'/workspace/Checkpoints/nusc_02_pp/latest.pth',
+                    'VN':'/workspace/Checkpoints/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z/epoch_20.pth'
+                },
+            'MVP':
+                {
+                    'PP':'/workspace/Checkpoints/centerpoint_mvp/nusc_centerpoint_pp_fix_bn_z_scale_virtual/epoch_20.pth'
+                }
+        },
+    'CenterNet2':'/workspace/Checkpoints/centernet2/centernet2_checkpoint.pth'
+}
 
 class ROSNode:
+
+    frame_names = {
+        'CAM_FRONT_LEFT'    : 'cam_front_left',
+        'CAM_FRONT'         : 'cam_front',
+        'CAM_FRONT_RIGHT'   : 'cam_front_right',
+        'CAM_BACK_LEFT'     : 'cam_back_left',
+        'CAM_BACK'          : 'cam_back',
+        'CAM_BACK_RIGHT'    : 'cam_back_right',
+        'LIDAR_TOP'         : 'lidar',
+    }
+
+    CAM_CHANS = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_FRONT_LEFT']
+
     def __init__(self, 
-                 mvp_model:MVP,
-                 centerpoint_model:CenterPointForwardModel
+                    modality, # MVP | LIDAR
+                    mvp_model,
+                    centerpoint_model:CenterPointForwardModel
                 ):
         rospy.init_node('mvp_node')
         rospy.loginfo('mvp_node started')
+
+        self.modality = modality
 
         self.mvp_model = mvp_model
         self.centerpoint_model = centerpoint_model
     
         self.cv_bridge = CvBridge()
         self.tf_listener = tf.TransformListener()
-        
+
         # Subscribes
-        self.img_subscribers = {
-            'CAM_FRONT_LEFT'    : message_filters.Subscriber('/camera/front_left/rgb_image',    Image),
-            'CAM_FRONT'         : message_filters.Subscriber('/camera/front/rgb_image',         Image),
-            'CAM_FRONT_RIGHT'   : message_filters.Subscriber('/camera/front_right/rgb_image',   Image),
-            'CAM_BACK_LEFT'     : message_filters.Subscriber('/camera/back_left/rgb_image',     Image),
-            'CAM_BACK'          : message_filters.Subscriber('/camera/back/rgb_image',          Image),
-            'CAM_BACK_RIGHT'    : message_filters.Subscriber('/camera/back_right/rgb_image',    Image),
-        }
-        self.camera_info_subscribers = {
-            'CAM_FRONT_LEFT'    : message_filters.Subscriber('/camera/front_left/camera_info',  CameraInfo),
-            'CAM_FRONT'         : message_filters.Subscriber('/camera/front/camera_info',       CameraInfo),
-            'CAM_FRONT_RIGHT'   : message_filters.Subscriber('/camera/front_right/camera_info', CameraInfo),
-            'CAM_BACK_LEFT'     : message_filters.Subscriber('/camera/back_left/camera_info',   CameraInfo),
-            'CAM_BACK'          : message_filters.Subscriber('/camera/back/camera_info',        CameraInfo),
-            'CAM_BACK_RIGHT'    : message_filters.Subscriber('/camera/back_right/camera_info',  CameraInfo),
-        }
-        self.pc_subscribers={
-            'LIDAR_TOP' : message_filters.Subscriber('/lidar/top', PointCloud2, queue_size=1, buff_size=2**24),
-        }
-        self.frame_names = {
-            'CAM_FRONT_LEFT'    : 'cam_front_left',
-            'CAM_FRONT'         : 'cam_front',
-            'CAM_FRONT_RIGHT'   : 'cam_front_right',
-            'CAM_BACK_LEFT'     : 'cam_back_left',
-            'CAM_BACK'          : 'cam_back',
-            'CAM_BACK_RIGHT'    : 'cam_back_right',
-            'LIDAR_TOP'         : 'lidar',
-        }
-        
+        if self.modality=='MVP': # Using both LiDAR and Cameras
+            self.img_subscribers = {
+                'CAM_FRONT_LEFT'    : message_filters.Subscriber('/camera/front_left/rgb_image',    Image),
+                'CAM_FRONT'         : message_filters.Subscriber('/camera/front/rgb_image',         Image),
+                'CAM_FRONT_RIGHT'   : message_filters.Subscriber('/camera/front_right/rgb_image',   Image),
+                'CAM_BACK_LEFT'     : message_filters.Subscriber('/camera/back_left/rgb_image',     Image),
+                'CAM_BACK'          : message_filters.Subscriber('/camera/back/rgb_image',          Image),
+                'CAM_BACK_RIGHT'    : message_filters.Subscriber('/camera/back_right/rgb_image',    Image),
+            }
+            self.camera_info_subscribers = {
+                'CAM_FRONT_LEFT'    : message_filters.Subscriber('/camera/front_left/camera_info',  CameraInfo),
+                'CAM_FRONT'         : message_filters.Subscriber('/camera/front/camera_info',       CameraInfo),
+                'CAM_FRONT_RIGHT'   : message_filters.Subscriber('/camera/front_right/camera_info', CameraInfo),
+                'CAM_BACK_LEFT'     : message_filters.Subscriber('/camera/back_left/camera_info',   CameraInfo),
+                'CAM_BACK'          : message_filters.Subscriber('/camera/back/camera_info',        CameraInfo),
+                'CAM_BACK_RIGHT'    : message_filters.Subscriber('/camera/back_right/camera_info',  CameraInfo),
+            }
+            self.pc_subscribers={
+                'LIDAR_TOP' : message_filters.Subscriber('/lidar/top', PointCloud2, queue_size=1, buff_size=2**24),
+            }
+            subscribers = []
+            for channel in self.CAM_CHANS:
+                subscribers.append(self.img_subscribers[channel])
+            for channel in self.CAM_CHANS:
+                subscribers.append(self.camera_info_subscribers[channel])
+            subscribers.append(self.pc_subscribers['LIDAR_TOP'])
+            
+            self.time_synchronizer = message_filters.ApproximateTimeSynchronizer(subscribers,queue_size=2,slop=0.7,allow_headerless=True)
+            # self.time_synchronizer = message_filters.TimeSynchronizer(subscribers,queue_size=10)
+            self.time_synchronizer.registerCallback(self.data_recieved_callback)
 
-        # Synchronize subscribers
-        subscribers = []
-        for channel in CAM_CHANS:
-            subscribers.append(self.img_subscribers[channel])
-        for channel in CAM_CHANS:
-            subscribers.append(self.camera_info_subscribers[channel])
-        subscribers.append(self.pc_subscribers['LIDAR_TOP'])
-        
-        self.time_synchronizer = message_filters.ApproximateTimeSynchronizer(subscribers,queue_size=2,slop=0.7,allow_headerless=True)
-        # self.time_synchronizer = message_filters.TimeSynchronizer(subscribers,queue_size=10)
-        self.time_synchronizer.registerCallback(self.data_recieved_callback)
-
-        # Publisher
-        # self.virtual_points_publisher = rospy.Publisher('/lidar/virtual', PointCloud2, queue_size=2)
+        else: # LiDAR only
+            self.img_subscribers = None
+            self.camera_info_subscribers = None
+            self.pc_subscribers={
+                'LIDAR_TOP' : rospy.Subscriber("/lidar/top", PointCloud2, self.data_recieved_callback, queue_size=1, buff_size=2**24)
+            }
 
         # Publisher for detected bounding boxes
         self.pub_arr_bbox = rospy.Publisher("bboxes_detected", BoundingBoxArray, queue_size=1)
@@ -108,53 +146,63 @@ class ROSNode:
         tt_0 = time.time()
         print('callback fn..')
         
-        img_msgs, camera_info_msgs, pc_msg = data[0:6] , data[6:12], data[12]
-        
-        
-        # convert sensor_msgs/Image to tensors
-        rgb_image_data = []
-        for rgb_image_msg in img_msgs:
-            rgb_image_cv2 = self.cv_bridge.imgmsg_to_cv2(rgb_image_msg, "bgr8")
-            rgb_img_tensor = self.mvp_model.preprocess_image(rgb_image_cv2)
-            rgb_image_data.append(rgb_img_tensor)
-            
-        # LiDAR to Camera transforms
-        all_cams_from_lidar_tms = []
-        for cam_channel in CAM_CHANS:
-            try:
-                (trans,rot) = self.tf_listener.lookupTransform(self.frame_names[cam_channel], self.frame_names['LIDAR_TOP'], rospy.Time(0))
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                # (trans,rot) = [0.0,0.0,0.0],[0.0,0.0,0.0,0.0]
-                # continue
-                rospy.logerr("ROS TF Exception")
-                return
+        if self.modality=='MVP': # Using both LiDAR and Cameras
+            img_msgs, camera_info_msgs, pc_msg = data[0:6] , data[6:12], data[12]
 
+            # convert sensor_msgs/Image to tensors
+            rgb_image_data = []
+            for rgb_image_msg in img_msgs:
+                rgb_image_cv2 = self.cv_bridge.imgmsg_to_cv2(rgb_image_msg, "bgr8")
+                rgb_img_tensor = self.mvp_model.preprocess_image(rgb_image_cv2)
+                rgb_image_data.append(rgb_img_tensor)
                 
-            tm = transform_matrix(trans, Quaternion(rot), inverse=False)
-            all_cams_from_lidar_tms.append(tm)
-        
-        # Intrinsics
-        all_cams_intrinsic =[]
-        for camera_info_msg in camera_info_msgs:
-            cameraMatrix = np.array(camera_info_msg.K).reshape((3, 3))
-            all_cams_intrinsic.append(cameraMatrix)
-        
-        # LiDAR Points
-        original_pc_arr = ros_numpy.point_cloud2.pointcloud2_to_array(pc_msg)
-        original_pc_arr = self.__get_xyz_points(original_pc_arr, True)
+            # LiDAR to Camera transforms
+            all_cams_from_lidar_tms = []
+            for cam_channel in self.CAM_CHANS:
+                try:
+                    (trans,rot) = self.tf_listener.lookupTransform(self.frame_names[cam_channel], self.frame_names['LIDAR_TOP'], rospy.Time(0))
+                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                    rospy.logerr("ROS TF Exception")
+                    return
+                tm = transform_matrix(trans, Quaternion(rot), inverse=False)
+                all_cams_from_lidar_tms.append(tm)
+            
+            # Intrinsics
+            all_cams_intrinsic =[]
+            for camera_info_msg in camera_info_msgs:
+                cameraMatrix = np.array(camera_info_msg.K).reshape((3, 3))
+                all_cams_intrinsic.append(cameraMatrix)
 
-        # Generate Virtual Points
-        tt_00p = time.time()
-        virtual_pc = self.mvp_model.do_inference(
-            lidar_points=original_pc_arr,
-            image_data=rgb_image_data,
-            all_cams_from_lidar_tms=all_cams_from_lidar_tms,
-            all_cams_intrinsic=all_cams_intrinsic
-        )
-        print("\tTime Cost: Generating Virtual Points \t:\t", time.time() - tt_00p)
+            # LiDAR Points
+            original_pc_arr = ros_numpy.point_cloud2.pointcloud2_to_array(pc_msg)
+            original_pc_arr = self.__get_xyz_points(original_pc_arr, True)
 
-        scores, dt_box_lidar, types = self.centerpoint_model.run_with_virtual_points(virtual_pc)
+            # Generate Virtual Points using CenterNet2
+            tt_00p = time.time()
+            virtual_pc = self.mvp_model.do_inference(
+                lidar_points=original_pc_arr,
+                image_data=rgb_image_data,
+                all_cams_from_lidar_tms=all_cams_from_lidar_tms,
+                all_cams_intrinsic=all_cams_intrinsic
+            )
+            print("\tTime Cost: Generating Virtual Points \t:\t", time.time() - tt_00p)
+            
+            # Run CenterPoint model
+            scores, dt_box_lidar, types = self.centerpoint_model.run_model(virtual_pc)
+
+        else: # Using only LiDAR
+            pc_msg = data[0]
+            img_msgs, camera_info_msgs, = None, None
+
+            # Convert LiDAR Points to np arrays
+            original_pc_arr = ros_numpy.point_cloud2.pointcloud2_to_array(pc_msg)
+            original_pc_arr = self.__get_xyz_points(original_pc_arr, True)
+
+            # Run CenterPoint model
+            scores, dt_box_lidar, types = self.centerpoint_model.run_model(original_pc_arr)
         
+    
+        # Publish to ROS
         self.__publish_detection_results(scores, dt_box_lidar, types, pc_msg.header.stamp)
 
         print("\tTotal Time Cost: Inside Callback \t:\t", time.time() - tt_0)
@@ -190,19 +238,13 @@ class ROSNode:
         arr_bbox.header.stamp = original_timestamp
         if len(arr_bbox.boxes) is not 0:
             self.pub_arr_bbox.publish(arr_bbox)
-            print('Published to ROS')
+            # print('Published to ROS')
             arr_bbox.boxes = []
         else:
             arr_bbox.boxes = []
             self.pub_arr_bbox.publish(arr_bbox)
 
             
-        
-
-
-
-
-    
 
 if __name__ == '__main__':
     ##
@@ -210,31 +252,42 @@ if __name__ == '__main__':
     ##
     import argparse
     parser = argparse.ArgumentParser(description="CenterPoint")
-    # CenterNet2 Config
-    parser.add_argument('--config-file', type=str, default='c2_config/nuImages_CenterNet2_DLA_640_8x.yaml')
-    # CenterPoint Config
-    parser.add_argument('--centerpoint-cfg', type=str, default='/workspace/CenterPoint/configs/mvp/nusc_centerpoint_pp_fix_bn_z_scale_virtual.py')
-    
-    # CenterPoint Weights
-    parser.add_argument('--centerpoint-weights', type=str, default='/workspace/Checkpoints/centerpoint_mvp/nusc_centerpoint_pp_fix_bn_z_scale_virtual/epoch_20.pth')
+    parser.add_argument('modality', choices=['mvp', 'lidar'],default='mvp', help='select which sensor modality to use') # MVP | LIDAR
+    parser.add_argument('backbone', choices=['pp', 'vn'], default='pp', help='select which backbone to use (PointPillars or VoxelNet)') # PointPillars | VoxelNet
 
-    # Optional arguments
-    parser.add_argument("opts", default=None, nargs=argparse.REMAINDER)
     args = parser.parse_args()
     
+    print(args)
 
+    modality = args.modality.upper() # MVP | LIDAR
+    backbone = args.backbone.upper() # PP | VN
+
+    
     ##
     # Init models
     ##
-    mvp_model = MVP(args)
 
-    centerpoint_model = CenterPointForwardModel(args.centerpoint_cfg, args.centerpoint_weights)
-    centerpoint_model.init_from_config()
+    # MVP
+    if modality=='MVP':
+        mvp_model = MVP(
+            args,
+            config_file = DEFAULT_CONFIG_FILE_PATHS['CenterNet2'], 
+            opts_list = ['MODEL.WEIGHTS', DEFAULT_WEIGHT_FILE_PATHS['CenterNet2']]
+        )
+    else:
+        mvp_model = None 
+
+    # CenterPoint 
+    centerpoint_model = CenterPointForwardModel(
+        config_path = DEFAULT_CONFIG_FILE_PATHS['CenterPoint'][modality][backbone], 
+        model_path  = DEFAULT_WEIGHT_FILE_PATHS['CenterPoint'][modality][backbone],
+        modality =  modality
+    )
 
     ##
     # Run ROS node 
     ##
     try:
-        ROSNode(mvp_model, centerpoint_model)
+        ROSNode(modality, mvp_model, centerpoint_model)
     except rospy.ROSInterruptException:
         pass

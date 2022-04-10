@@ -20,17 +20,22 @@ from visualize import visualize_points
 CUDA_DEVICE = 'cuda:0'
 
 class MVP:
-    def __init__(self, args):
+    def __init__(self, 
+        args,
+        config_file='c2_config/nuImages_CenterNet2_DLA_640_8x.yaml', 
+        opts_list=['MODEL.WEIGHTS', '/workspace/Checkpoints/centernet2/centernet2_checkpoint.pth']
+    
+    ):
         self.H=900
         self.W=1600
         
-        self.centernet2_predictor = self.__init_detector(args)
+        self.centernet2_predictor = self.__init_detector(args, config_file, opts_list)
         
-    def __init_detector(self,args):
-        from CenterNet2.train_net import setup
+    def __init_detector(self,args, config_file, opts_list):
+        from CenterNet2.train_net import setup2
         from detectron2.engine import DefaultPredictor
 
-        cfg = setup(args)
+        cfg = setup2(args, config_file, opts_list )
         predictor = DefaultPredictor(cfg)
         return predictor 
     
