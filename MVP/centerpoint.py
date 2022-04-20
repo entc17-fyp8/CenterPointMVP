@@ -45,7 +45,7 @@ def remove_low_score_nu(image_anno, thresh):
     barrier_indices =              get_annotations_indices(5, 0.4, label_preds_, scores_)
     motorcycle_indices =           get_annotations_indices(6, 0.15, label_preds_, scores_)
     bicycle_indices =              get_annotations_indices(7, 0.15, label_preds_, scores_)
-    pedestrain_indices =           get_annotations_indices(8, 0.1, label_preds_, scores_)
+    pedestrain_indices =           get_annotations_indices(8, 0.12, label_preds_, scores_)
     traffic_cone_indices =         get_annotations_indices(9, 0.1, label_preds_, scores_)
     
     for key in image_anno.keys():
@@ -67,7 +67,7 @@ def remove_low_score_nu(image_anno, thresh):
 
 
 class CenterPointForwardModel:
-    def __init__(self, config_path, model_path, modality='MVP'):
+    def __init__(self, config_path, model_path, modality='MVP', multi_sweep = False):
         self.points = None
         self.config_path = config_path
         self.model_path = model_path
@@ -81,6 +81,8 @@ class CenterPointForwardModel:
             self.num_features = 16
         else:
             self.num_features = 5
+        
+        self.multi_sweep = multi_sweep
 
         self.__init_from_config()
         
@@ -131,10 +133,13 @@ class CenterPointForwardModel:
                 axis=1
             )
         else: # Using only LiDAR points
-            # point_features has shape : (_,5)             
-            self.points = point_features.reshape([-1, self.num_features]) # num_features = 5
-            # self.points also should be (_,5)
-            self.points[:, 4] = 0 # timestamp value set to 0s
+            if self.multi_sweep:
+                self.points = point_features
+            else:
+                # point_features has shape : (_,5)             
+                self.points = point_features.reshape([-1, self.num_features]) # num_features = 5
+                # self.points also should be (_,5)
+                self.points[:, 4] = 0 # timestamp value set to 0s
 
         
         tt_1_b = time.time()

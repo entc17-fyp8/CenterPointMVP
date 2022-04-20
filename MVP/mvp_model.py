@@ -81,9 +81,9 @@ class MVP:
         Returns:
             points : 
         '''    
-        # lidar_points : # (N, 5) : [x,y,z,0,0]
+        # lidar_points : # (N, 5) : [x,y,z,intensity?,0]
         lidar_points = lidar_points.reshape([-1, 5])[:, :4] # (N, 5) => (N, 4)   # Here 4 is 'num_features'  
-        # lidar_points : # (N, 4) : [x,y,z,0]
+        # lidar_points : # (N, 4) : [x,y,z,intensity?]
 
         
         virtual_points, real_points, real_points_indices = self.__generate_virtual_points(
