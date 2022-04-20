@@ -200,6 +200,7 @@ def process_one_frame(info, predictor, data, num_camera=6):
     all_cams_intrinsic = info['all_cams_intrinsic']
     lidar_points = read_file(info['lidar_path'])
 
+    # print('lidar_points:',lidar_points.shape) #(34720, 4)
 
     one_hot_labels = [] 
     for i in range(10):
@@ -292,6 +293,9 @@ def main(args):
             'real_points': real_points,
             'real_points_indice': indices
         }
+
+        # print('virtual_points:',virtual_points.shape) # (1100, 14)
+        # print('real_points:',real_points.shape) # (697, 15)
 
         np.save(output_path, data_dict)
         # torch.cuda.empty_cache() if you get OOM error 

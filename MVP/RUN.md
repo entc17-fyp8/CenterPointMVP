@@ -14,3 +14,11 @@ To save time and space, before running the above command, you can also remove li
 ### Generate Virtual Points
 
     python3 virtual_gen.py --info_path /workspace/CenterPoint/data/nuScenes/infos_train_10sweeps_withvelo_filter_True.pkl  MODEL.WEIGHTS /workspace/Checkpoints/centernet2/centernet2_checkpoint.pth 
+
+### Run ROS Inference Code
+
+    python3 ros_inference.py  MODEL.WEIGHTS /workspace/Checkpoints/centernet2/centernet2_checkpoint.pth 
+
+or simply
+
+    python3 ros_inference.py

@@ -182,6 +182,22 @@ def setup(args):
     default_setup(cfg, args)
     return cfg
 
+def setup2(args, config_file, opts_list):
+    """
+    Create configs and perform basic setups.
+    """
+    cfg = get_cfg()
+    add_centernet_config(cfg)
+    cfg.merge_from_file(config_file)
+    cfg.merge_from_list(opts_list)
+    if '/auto' in cfg.OUTPUT_DIR:
+        file_name = os.path.basename(config_file)[:-5]
+        cfg.OUTPUT_DIR = cfg.OUTPUT_DIR.replace('/auto', '/{}'.format(file_name))
+        logger.info('OUTPUT_DIR: {}'.format(cfg.OUTPUT_DIR))
+    cfg.freeze()
+    default_setup(cfg, args)
+    return cfg
+
 
 def main(args):
     cfg = setup(args)
