@@ -140,6 +140,7 @@ class ROSNode:
         points[...,0] = cloud_array['x']
         points[...,1] = cloud_array['y']
         points[...,2] = cloud_array['z']
+        points[...,3] = cloud_array['intensity']
         return points
 
     def data_recieved_callback(self,*data):
