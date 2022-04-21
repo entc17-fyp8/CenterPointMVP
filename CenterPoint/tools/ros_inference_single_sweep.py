@@ -1,4 +1,3 @@
-
 import rospy
 import ros_numpy
 import numpy as np
@@ -238,22 +237,37 @@ def rslidar_callback(msg):
 if __name__ == "__main__":
 
     global proc
-    ## CenterPoint
-    # config_path = 'configs/centerpoint/nusc_centerpoint_pp_02voxel_circle_nms_demo.py'
-    # model_path = 'models/last.pth'
     
-    #### VoxelNet
-    config_path = '/workspace/CenterPoint/configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py'
-    model_path = '/workspace/Checkpoints/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z/epoch_20.pth'
+    DEFAULT_CONFIG_FILE_PATHS = {
+        'PP': '/workspace/CenterPoint/configs/nusc/pp/nusc_centerpoint_pp_02voxel_two_pfn_10sweep.py',
+        'VN': '/workspace/CenterPoint/configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py'
+    }
+    DEFAULT_WEIGHT_FILE_PATHS = {
+        'PP': '/workspace/Checkpoints/nusc_02_pp/latest.pth',
+        'VN': '/workspace/Checkpoints/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z/epoch_20.pth'
+    }
 
-    #### PointPillars
-    # config_path = '/workspace/CenterPoint/configs/nusc/pp/nusc_centerpoint_pp_02voxel_two_pfn_10sweep.py'
-    # model_path = '/workspace/Checkpoints/nusc_02_pp/latest.pth'
+    ##
+    # Read Arguments
+    ##
+    import argparse
+    parser = argparse.ArgumentParser(description="CenterPoint")
+    parser.add_argument('backbone', choices=['pp', 'vn'], default='pp', help='select which backbone to use (PointPillars or VoxelNet)') # PointPillars | VoxelNet
+    args = parser.parse_args()
+    
+    print(args)
 
+    backbone = args.backbone.upper() # PP | VN
+    
+    config_path = DEFAULT_CONFIG_FILE_PATHS[backbone]
+    model_path  = DEFAULT_WEIGHT_FILE_PATHS[backbone]
+    
+        
+    # Initialize Model
     proc_1 = Processor_ROS(config_path, model_path)
-    
     proc_1.initialize()
     
+    # Run ROS Node
     rospy.init_node('centerpoint_ros_node')
     
     sub_ = rospy.Subscriber("/lidar/top", PointCloud2, rslidar_callback, queue_size=1, buff_size=2**24)
