@@ -166,6 +166,7 @@ def get_xyz_points(cloud_array, remove_nans=True, dtype=np.float):
     points[...,0] = cloud_array['x']
     points[...,1] = cloud_array['y']
     points[...,2] = cloud_array['z']
+    points[..., 3] = cloud_array['intensity']
     return points
 
 def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id=None):
