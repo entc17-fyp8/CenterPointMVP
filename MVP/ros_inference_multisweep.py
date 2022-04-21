@@ -294,6 +294,9 @@ class ROSNode:
             # LiDAR Points
             original_pc_arr = ros_numpy.point_cloud2.pointcloud2_to_array(pc_msg)
             original_pc_arr = self.__get_xyz_points(original_pc_arr, True)
+            
+            # TODO: Add code for Multisweep MVP
+            # if self.multi_sweep: # Multi-sweep
 
             # Generate Virtual Points using CenterNet2
             tt_00p = time.time()
