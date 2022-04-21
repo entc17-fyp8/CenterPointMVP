@@ -184,39 +184,3 @@ class CenterPointForwardModel:
 
         return scores, boxes_lidar, types
 
-def get_xyz_points(cloud_array, remove_nans=True, dtype=np.float):
-    '''
-    '''
-    if remove_nans:
-        mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
-        cloud_array = cloud_array[mask]
-
-    points = np.zeros(cloud_array.shape + (5,), dtype=dtype)
-    points[...,0] = cloud_array['x']
-    points[...,1] = cloud_array['y']
-    points[...,2] = cloud_array['z']
-    return points
-
-def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id=None):
-    '''
-    Create a sensor_msgs.PointCloud2 from an array of points.
-    '''
-    msg = PointCloud2()
-    if stamp:
-        msg.header.stamp = stamp
-    if frame_id:
-        msg.header.frame_id = frame_id
-    msg.height = 1
-    msg.width = points_sum.shape[0]
-    msg.fields = [
-        PointField('x', 0, PointField.FLOAT32, 1),
-        PointField('y', 4, PointField.FLOAT32, 1),
-        PointField('z', 8, PointField.FLOAT32, 1)
-        # PointField('i', 12, PointField.FLOAT32, 1)
-        ]
-    msg.is_bigendian = False
-    msg.point_step = 12
-    msg.row_step = points_sum.shape[0]
-    msg.is_dense = int(np.isfinite(points_sum).all())
-    msg.data = np.asarray(points_sum, np.float32).tostring()
-    return msg
